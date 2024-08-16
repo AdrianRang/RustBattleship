@@ -19,8 +19,8 @@ impl Ship {
 }
 
 fn main() {
-    const WIDTH: i8 = 10;
-    const HEIGHT: i8 = 10;
+    const WIDTH: i8 = 8;
+    const HEIGHT: i8 = 8;
 
     let mut s = Ship {
         pos: Point { x: 2, y: 2 },
@@ -48,24 +48,56 @@ fn main() {
     println!();
 
     let mut shots: Vec<Point> = Vec::new();
-    for _turn in 0..1 {
-        shots.push(Point { x: 0, y: 0 });
-        shots.push(Point { x: 3, y: 3 });
+    let mut iy:char = 'Ñ';
+    let mut ix:i8 = 127;
+    for _turn in 0..5 {
+        // shots.push(Point { x: 0, y: 0 });
+        // shots.push(Point { x: 3, y: 3 });
+
+        if iy == 'Ñ' {
+            iy = input_letter();
+        } else {
+            ix = input_number();
+        }
+
+        print!("  │ ");
+        for i in 1..WIDTH+1 {
+            print!("{i} ")
+        }
+
+        println!("│");
+        print!("──│─");
+        for _ in 1..WIDTH+1 {
+            print!("──");
+        }
+        println!("│");
 
         for y in 0..HEIGHT {
-            print!("|");
+            print!("{} ├─", number_to_letter(y));
             for x in 0..WIDTH {
-                if shots.iter().any(|p| p.x == x && p.y == y) {
+                if letter_to_number(iy) == y && ix == x {
+                    print!("▓▓");
+                    continue;
+                }
+                if letter_to_number(iy) == y{
+                    print!("░░");
+                    continue;
+                }
+                if ix == x {
+                    print!("░░");
+                    continue;
+                } 
+                if shots.iter().any(|p| p.x == x || p.y == y) {
                     if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
-                        print!("X");
+                        print!("─X─");
                     } else {
-                        print!("O");
+                        print!("-O-");
                     }
                 } else {
-                    print!(" ");
+                    print!("┼─");
                 }
             }
-            println!("|");
+            println!("│");
         }
         println!();
     }
@@ -84,4 +116,21 @@ fn input() -> String {
     let mut line = String::new();
     std::io::stdin().read_line(&mut line).unwrap();
     return line;
+}
+
+fn input_number() -> i8 {
+    
+    return input().trim().parse().unwrap();
+}
+
+fn input_letter() -> char {
+    return input().trim().chars().next().unwrap();
+}
+
+fn letter_to_number(letter: char) -> i8 {
+    return letter as i8 - 'A' as i8;
+}
+
+fn number_to_letter(number: i8) -> char {
+    return (number as u8 + 'A' as u8) as char;
 }
