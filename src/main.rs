@@ -1,3 +1,4 @@
+#[derive(Debug)]
 struct Point {
     x: i8,
     y: i8,
@@ -18,11 +19,31 @@ impl Ship {
     }
 }
 
+enum Position {
+    Letter(char),
+    Number(i8),
+    Shoot(bool),
+}
+
+const _BOLD:&str = "\u{001B}[1m";
+const _BLACK:&str = "\u{001B}[30m";
+const _RED:&str = "\u{001B}[31m";
+const _GREEN:&str = "\u{001B}[32m";
+const _YELLOW:&str = "\u{001B}[x33m";
+const _BLUE:&str = "\u{001B}[34m";
+const _PURPLE:&str = "\u{001B}[35m";
+const _CYAN:&str = "\u{001B}[36m";
+const _WHITE:&str = "\u{001B}[37m";
+const _GRAY:&str = "\u{001B}[90m";
+const _RESET:&str = "\x1B[0m";
+
+const CROSSHAIRCOL:&str = _GREEN;
+
 fn main() {
     const WIDTH: i8 = 8;
     const HEIGHT: i8 = 8;
 
-    let mut s = Ship {
+    let s = Ship {
         pos: Point { x: 2, y: 2 },
         shape: vec![
             Point { x: 0, y: 0 },
@@ -32,69 +53,67 @@ fn main() {
         ],
     };
 
-    for _ in 0..1 {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
-                    print!("X");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
-    }
+    let mut ships: Vec<Ship> = Vec::new();
+
+    ships.push(s);
 
     println!();
 
     let mut shots: Vec<Point> = Vec::new();
     let mut iy:char = 'Ñ';
     let mut ix:i8 = 127;
-    for _turn in 0..5 {
-        // shots.push(Point { x: 0, y: 0 });
-        // shots.push(Point { x: 3, y: 3 });
+    for _turn in 0..10 {
 
-        if iy == 'Ñ' {
-            iy = input_letter();
-        } else {
-            ix = input_number();
+        match input_any() {
+            Position::Letter(letter) => {
+                iy = letter;
+            },
+            Position::Number(number) => {
+                ix = number - 1;
+            },
+            Position::Shoot(shoot) => {
+                if shoot {
+                    shots.push(Point { x: ix, y: letter_to_number(iy) });
+                    ix = 127;
+                    iy = 'Ñ';
+                }
+            }
         }
 
         print!("  │ ");
         for i in 1..WIDTH+1 {
-            print!("{i} ")
+            print!("{}{}{i} ", if i-1 == ix { _BOLD } else { _RESET }, if i-1 == ix { CROSSHAIRCOL } else { _RESET }, i=i);
         }
 
         println!("│");
         print!("──│─");
-        for _ in 1..WIDTH+1 {
-            print!("──");
+        for i in 1..WIDTH+1 {
+            print!("{}──", if i-1 == ix { _BOLD } else { _RESET });
         }
         println!("│");
 
         for y in 0..HEIGHT {
-            print!("{} ├─", number_to_letter(y));
+            print!("{}{}{num} │ ", if y==letter_to_number(iy) { CROSSHAIRCOL } else { _RESET }, if y==letter_to_number(iy) { _BOLD } else { _RESET }, num=number_to_letter(y));
             for x in 0..WIDTH {
-                if letter_to_number(iy) == y && ix == x {
-                    print!("▓▓");
-                    continue;
-                }
-                if letter_to_number(iy) == y{
-                    print!("░░");
-                    continue;
-                }
-                if ix == x {
-                    print!("░░");
-                    continue;
-                } 
-                if shots.iter().any(|p| p.x == x || p.y == y) {
-                    if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
-                        print!("─X─");
-                    } else {
-                        print!("-O-");
+                if shots.iter().any(|p| p.x == x && p.y == y) {
+                    for ship in &ships {
+                        if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
+                            print!("{_RED}■{_RESET} ");
+                        } else {
+                            print!("{_BLUE}■{_RESET} ");
+                        }
                     }
+                } else if letter_to_number(iy) == y && ix == x {
+                    print!("{CROSSHAIRCOL}╬═{_RESET}");
+                    continue;
+                } else if letter_to_number(iy) == y{
+                    print!("{CROSSHAIRCOL}══{_RESET}");
+                    continue;
+                } else if ix == x {
+                    print!("{CROSSHAIRCOL}║ {_RESET}");
+                    continue;
                 } else {
-                    print!("┼─");
+                    print!("■ ");
                 }
             }
             println!("│");
@@ -129,6 +148,20 @@ fn input_letter() -> char {
 
 fn letter_to_number(letter: char) -> i8 {
     return letter as i8 - 'A' as i8;
+}
+
+fn input_any() -> Position {
+    let binding = input();
+    let input: &str = binding.trim();
+    if input == "!" {
+        Position::Shoot(true)
+    } else if let Ok(number) = input.parse::<i8>() {
+        Position::Number(number)
+    } else if let Some(letter) = input.chars().next() {
+        Position::Letter(letter)
+    } else {
+        panic!("Invalid input");
+    }
 }
 
 fn number_to_letter(number: i8) -> char {
