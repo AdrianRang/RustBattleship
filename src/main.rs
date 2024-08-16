@@ -32,7 +32,7 @@ fn main() {
         ],
     };
 
-    for _ in 0..5 {
+    for _ in 0..1 {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
@@ -43,9 +43,39 @@ fn main() {
             }
             println!();
         }
-        s.rotate();
-        input();
     }
+
+    println!();
+
+    let mut shots: Vec<Point> = Vec::new();
+    for _turn in 0..1 {
+        shots.push(Point { x: 0, y: 0 });
+        shots.push(Point { x: 3, y: 3 });
+
+        for y in 0..HEIGHT {
+            print!("|");
+            for x in 0..WIDTH {
+                if shots.iter().any(|p| p.x == x && p.y == y) {
+                    if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
+                        print!("X");
+                    } else {
+                        print!("O");
+                    }
+                } else {
+                    print!(" ");
+                }
+            }
+            println!("|");
+        }
+        println!();
+    }
+    
+    // println!("Shooting at {}, {}", hit.x, hit.y);
+    // if s.shape.iter().any(|p| p.x == hit.x-s.pos.x && p.y == hit.y-s.pos.y) {
+    //     println!("Hit!");
+    // } else {
+    //     println!("Miss!");
+    // }
 }
 
 
