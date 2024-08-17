@@ -17,6 +17,18 @@ impl Ship {
             p.y = x;
         }
     }
+
+    fn clone(&self) -> Ship {
+        let new_pos = Point { x: self.pos.x, y: self.pos.y };
+        let mut new_shape = Vec::new();
+        for p in &self.shape {
+            new_shape.push(Point { x: p.x, y: p.y });
+        }
+        Ship {
+            pos: new_pos,
+            shape: new_shape,
+        }
+    }
 }
 
 enum Position {
@@ -54,6 +66,7 @@ fn main() {
     };
 
     let mut ships: Vec<Ship> = Vec::new();
+    let mut downed_ships: Vec<Ship> = Vec::new();
 
     ships.push(s);
 
@@ -62,7 +75,7 @@ fn main() {
     let mut shots: Vec<Point> = Vec::new();
     let mut iy:char = 'Ñ';
     let mut ix:i8 = 127;
-    for _turn in 0..10 {
+    for _turn in 0..20 {
 
         match input_any() {
             Position::Letter(letter) => {
@@ -80,27 +93,52 @@ fn main() {
             }
         }
 
-        print!("  │ ");
+        let mut to_remove: Vec<usize> = Vec::new();
+        // Check if a ship is downed
+        for ship in &ships {
+            let mut downed = true;
+            for p in &ship.shape {
+                if !shots.iter().any(|s| s.x == p.x+ship.pos.x && s.y == p.y+ship.pos.y) {
+                    downed = false;
+                    break;
+                }
+            }
+            if downed {
+                downed_ships.push(ship.clone());
+                to_remove.push(ships.iter().position(|s| s.pos.x == ship.pos.x && s.pos.y == ship.pos.y).unwrap());
+            }
+        }
+
+        for i in to_remove.iter().rev() {
+            ships.remove(*i);
+        }
+
+        print!("{_RED}{_BOLD}P1{_RESET}│ ");
         for i in 1..WIDTH+1 {
             print!("{}{}{i} ", if i-1 == ix { _BOLD } else { _RESET }, if i-1 == ix { CROSSHAIRCOL } else { _RESET }, i=i);
         }
 
-        println!("│");
-        print!("──│─");
+        println!("│ Ships remaining: {_RED}{_BOLD}{num}{_RESET}", num=ships.len());
+        print!("──┼─");
         for i in 1..WIDTH+1 {
             print!("{}──", if i-1 == ix { _BOLD } else { _RESET });
         }
-        println!("│");
+        println!("┼────────────────────");
 
         for y in 0..HEIGHT {
             print!("{}{}{num} │ ", if y==letter_to_number(iy) { CROSSHAIRCOL } else { _RESET }, if y==letter_to_number(iy) { _BOLD } else { _RESET }, num=number_to_letter(y));
             for x in 0..WIDTH {
+                for ship in &downed_ships {
+                    if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
+                        print!("{_GRAY}■{_RESET} ");
+                    }
+                }
                 if shots.iter().any(|p| p.x == x && p.y == y) {
                     for ship in &ships {
                         if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
                             print!("{_RED}■{_RESET} ");
                         } else {
-                            print!("{_BLUE}■{_RESET} ");
+                            print!("{_RESET}■{_RESET} ");
                         }
                     }
                 } else if letter_to_number(iy) == y && ix == x {
@@ -113,10 +151,10 @@ fn main() {
                     print!("{CROSSHAIRCOL}║ {_RESET}");
                     continue;
                 } else {
-                    print!("■ ");
+                    print!("{_CYAN}■ {_RESET}");
                 }
             }
-            println!("│");
+            println!("\x08 │");
         }
         println!();
     }
@@ -150,6 +188,10 @@ fn letter_to_number(letter: char) -> i8 {
     return letter as i8 - 'A' as i8;
 }
 
+fn number_to_letter(number: i8) -> char {
+    return (number as u8 + 'A' as u8) as char;
+}
+
 fn input_any() -> Position {
     let binding = input();
     let input: &str = binding.trim();
@@ -162,8 +204,4 @@ fn input_any() -> Position {
     } else {
         panic!("Invalid input");
     }
-}
-
-fn number_to_letter(number: i8) -> char {
-    return (number as u8 + 'A' as u8) as char;
 }
