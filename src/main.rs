@@ -106,8 +106,8 @@ fn main() {
 
     ships.push(squigly);
     ships.push(strait4);
-    // ships.push(straight3);
-    // ships.push(straight2);
+    ships.push(straight3);
+    ships.push(straight2);
 
     // DEBUG Render ships
     for ship in &ships {
@@ -126,6 +126,8 @@ fn main() {
 
     let mut selec_ship = 0;
     loop {
+
+        
         match input_move() {
             Move::Up => {
                 if ships[selec_ship].pos.y > 0 {
@@ -157,6 +159,19 @@ fn main() {
                 break;
             },
         }
+
+        let _ = clearscreen::clear();
+
+        print!("  │ ");
+        for i in 1..WIDTH+1 {
+            print!("{i} ", i=i);
+        }
+        println!("|");
+        print!("──┼─");
+        for _ in 0..WIDTH {
+            print!("──");
+        }
+        println!("┐");
         for y in 0..HEIGHT {
             print!("{} │ ", number_to_letter(y));
             for x in 0..WIDTH {
@@ -175,16 +190,26 @@ fn main() {
                     print!("  ");
                 }
             }
-            println!();
+            println!("│");
         }
+        print!("  └");
+        for _ in 0..WIDTH {
+            print!("──");
+        }
+        println!("─┘");
     }
+
 
     println!();
 
     let mut shots: Vec<Point> = Vec::new();
     let mut iy:char = 'Ñ';
     let mut ix:i8 = 127;
-    for _turn in 0..20 {
+    loop {
+        if ships.len() == 0 {
+            println!("All ships downed!");
+            break;
+        }
 
         match input_any() {
             Position::Letter(letter) => {
@@ -201,6 +226,8 @@ fn main() {
                 }
             }
         }
+        
+        let _ = clearscreen::clear();
 
         let mut to_remove: Vec<usize> = Vec::new();
         // Check if a ship is downed
@@ -236,11 +263,11 @@ fn main() {
 
         for y in 0..HEIGHT {
             print!("{}{}{num} │ ", if y==letter_to_number(iy) { CROSSHAIRCOL } else { _RESET }, if y==letter_to_number(iy) { _BOLD } else { _RESET }, num=number_to_letter(y));
-            for x in 0..WIDTH {
+            'hor: for x in 0..WIDTH {
                 for ship in &downed_ships {
                     if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
                         print!("{_GRAY}■{_RESET} ");
-                        break;
+                        continue 'hor;
                     }
                 }
                 if shots.iter().any(|p| p.x == x && p.y == y) {
