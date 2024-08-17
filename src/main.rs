@@ -226,7 +226,7 @@ fn main() {
                 }
             }
         }
-        
+
         let _ = clearscreen::clear();
 
         let mut to_remove: Vec<usize> = Vec::new();
@@ -274,12 +274,12 @@ fn main() {
                     for ship in &ships {
                         if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
                             print!("{_RED}■{_RESET} ");
-                            break;
+                            continue 'hor;
                         } else {
-                            print!("{_RESET}■{_RESET} ");
-                            break;
+                            continue;
                         }
                     }
+                    print!("{_RESET}■{_RESET} ");
                 } else if letter_to_number(iy) == y && ix == x {
                     print!("{CROSSHAIRCOL}╬═{_RESET}");
                     continue;
