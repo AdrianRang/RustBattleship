@@ -6,6 +6,7 @@ struct Point {
     y: i8,
 }
 
+#[derive(Debug)]
 struct  Ship {
     pos: Point,
     shape: Vec<Point>,
@@ -101,28 +102,43 @@ fn main() {
         ],
     };
 
-    let mut ships: Vec<Ship> = Vec::new();
+    let mut sss = Vec::new();
+    sss.push(squigly.clone());
+    sss.push(strait4.clone());
+    sss.push(straight3.clone());
+    sss.push(straight2.clone());
+    let mut ships: Vec<(Ship, Vec<String>)> = Vec::new();
     let mut downed_ships: Vec<Ship> = Vec::new();
 
-    ships.push(squigly);
-    ships.push(strait4);
-    ships.push(straight3);
-    ships.push(straight2);
-
+    
+    let mut renderships: Vec<Vec<String>> = Vec::new();
+    
     // DEBUG Render ships
-    for ship in &ships {
+    for ship in &sss {
+        let mut rship: Vec<String> = Vec::new();
         for y in 0..4 {
+            let mut r = String::new();
             for x in 0..2 {
                 if ship.shape.iter().any(|p| p.x == x && p.y == y) {
                     print!("■ ");
+                    r.push_str("■ ");
                 } else {
                     print!("□ ");
+                    r.push_str("  ");
                 }
+            }
+            if !r.replace(" ", "").is_empty() {
+                rship.push(r);
             }
             println!();
         }
+        renderships.push(rship);
         println!();
     }
+    ships.push((squigly, renderships[0].clone()));
+    ships.push((strait4, renderships[1].clone()));
+    ships.push((straight3, renderships[2].clone()));
+    ships.push((straight2, renderships[3].clone()));
 
     let mut selec_ship = 0;
     loop {
@@ -130,27 +146,27 @@ fn main() {
         
         match input_move() {
             Move::Up => {
-                if ships[selec_ship].pos.y > 0 {
-                    ships[selec_ship].pos.y -= 1;
+                if ships[selec_ship].0.pos.y > 0 {
+                    ships[selec_ship].0.pos.y -= 1;
                 }
             },
             Move::Down => {
-                if ships[selec_ship].pos.y < HEIGHT-1 {
-                    ships[selec_ship].pos.y += 1;
+                if ships[selec_ship].0.pos.y < HEIGHT-1 {
+                    ships[selec_ship].0.pos.y += 1;
                 }
             },
             Move::Left => {
-                if ships[selec_ship].pos.x > 0 {
-                    ships[selec_ship].pos.x -= 1;
+                if ships[selec_ship].0.pos.x > 0 {
+                    ships[selec_ship].0.pos.x -= 1;
                 }
             },
             Move::Right => {
-                if ships[selec_ship].pos.x < WIDTH-1 {
-                    ships[selec_ship].pos.x += 1;
+                if ships[selec_ship].0.pos.x < WIDTH-1 {
+                    ships[selec_ship].0.pos.x += 1;
                 }
             },
             Move::Rotate => {
-                ships[selec_ship].rotate();
+                ships[selec_ship].0.rotate();
             },
             Move::Switch => {
                 selec_ship = (selec_ship + 1) % ships.len();
@@ -178,7 +194,7 @@ fn main() {
                 let mut i = 0;
                 let mut ship = false;
                 for s in &ships {
-                    if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
+                    if s.0.shape.iter().any(|p| p.x == x-s.0.pos.x && p.y == y-s.0.pos.y) {
                         ship = true;
                         break;
                     }
@@ -199,13 +215,20 @@ fn main() {
         println!("─┘");
     }
 
-
     println!();
+
+    let mut ships_size_y: u8 = 0;
+    for ship in &ships {
+        ships_size_y += ship.1.len() as u8;
+    }
 
     let mut shots: Vec<Point> = Vec::new();
     let mut iy:char = 'Ñ';
     let mut ix:i8 = 127;
     loop {
+        let mut currship = 0;
+        let mut yoffset = 0;
+        let mut tempy = 0;
         if ships.len() == 0 {
             println!("All ships downed!");
             break;
@@ -233,15 +256,15 @@ fn main() {
         // Check if a ship is downed
         for ship in &ships {
             let mut downed = true;
-            for p in &ship.shape {
-                if !shots.iter().any(|s| s.x == p.x+ship.pos.x && s.y == p.y+ship.pos.y) {
+            for p in &ship.0.shape {
+                if !shots.iter().any(|s| s.x == p.x+ship.0.pos.x && s.y == p.y+ship.0.pos.y) {
                     downed = false;
                     break;
                 }
             }
             if downed {
-                downed_ships.push(ship.clone());
-                to_remove.push(ships.iter().position(|s| s.pos.x == ship.pos.x && s.pos.y == ship.pos.y).unwrap());
+                downed_ships.push(ship.0.clone());
+                to_remove.push(ships.iter().position(|s| s.0.pos.x == ship.0.pos.x && s.0.pos.y == ship.0.pos.y).unwrap());
             }
         }
 
@@ -272,7 +295,7 @@ fn main() {
                 }
                 if shots.iter().any(|p| p.x == x && p.y == y) {
                     for ship in &ships {
-                        if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
+                        if ship.0.shape.iter().any(|p| p.x == x-ship.0.pos.x && p.y == y-ship.0.pos.y) {
                             print!("{_RED}■{_RESET} ");
                             continue 'hor;
                         } else {
@@ -293,7 +316,28 @@ fn main() {
                     print!("{_CYAN}■ {_RESET}");
                 }
             }
-            println!("\x08 │");
+            print!("\x08 │  ");
+            // print!("{}, {yoffset} {:?}  ", currship, ships[currship].0.shape);
+            let rows = (ships_size_y as f64 / HEIGHT as f64).round() as u8;
+            print!("{rows}  ", rows=rows);
+            // for i in 0..rows  {
+                if currship < ships.len() {
+                    if y - yoffset < ships[currship].1.len() as i8 {
+                        print!("{}", ships[currship].1[(y - yoffset) as usize]);
+                        tempy += 1;
+                    } else {
+                        currship += 1;
+                        yoffset = tempy + 1; // +1 because we want to skip the next line
+                        tempy = 0;
+                    }
+                }
+
+                print!("   ");
+
+                // currship += rows as usize - 1;
+            // }
+            // currship -= rows as usize - 1;
+            println!();
         }
         println!();
     }
