@@ -1,3 +1,5 @@
+use core::str;
+
 #[derive(Debug)]
 struct Point {
     x: i8,
@@ -37,6 +39,16 @@ enum Position {
     Shoot(bool),
 }
 
+enum Move {
+    Up,
+    Down,
+    Left,
+    Right,
+    Rotate,
+    Switch,
+    Done,
+}
+
 const _BOLD:&str = "\u{001B}[1m";
 const _BLACK:&str = "\u{001B}[30m";
 const _RED:&str = "\u{001B}[31m";
@@ -55,8 +67,8 @@ fn main() {
     const WIDTH: i8 = 8;
     const HEIGHT: i8 = 8;
 
-    let s = Ship {
-        pos: Point { x: 2, y: 2 },
+    let squigly = Ship {
+        pos: Point { x: 2, y: 0 },
         shape: vec![
             Point { x: 0, y: 0 },
             Point { x: 0, y: 1 },
@@ -64,11 +76,108 @@ fn main() {
             Point { x: 1, y: 2 },
         ],
     };
+    let strait4 = Ship {
+        pos: Point { x: 0, y: 4 },
+        shape: vec![
+            Point { x: 0, y: 0 },
+            Point { x: 0, y: 1 },
+            Point { x: 0, y: 2 },
+            Point { x: 0, y: 3 },
+        ],
+    };
+    let straight3 = Ship {
+        pos: Point { x: 3, y: 4 },
+        shape: vec![
+            Point { x: 0, y: 0 },
+            Point { x: 0, y: 1 },
+            Point { x: 0, y: 2 },
+        ],
+    };
+    let straight2 = Ship {
+        pos: Point { x: 0, y: 0 },
+        shape: vec![
+            Point { x: 0, y: 0 },
+            Point { x: 0, y: 1 },
+        ],
+    };
 
     let mut ships: Vec<Ship> = Vec::new();
     let mut downed_ships: Vec<Ship> = Vec::new();
 
-    ships.push(s);
+    ships.push(squigly);
+    ships.push(strait4);
+    // ships.push(straight3);
+    // ships.push(straight2);
+
+    // DEBUG Render ships
+    for ship in &ships {
+        for y in 0..4 {
+            for x in 0..2 {
+                if ship.shape.iter().any(|p| p.x == x && p.y == y) {
+                    print!("■ ");
+                } else {
+                    print!("□ ");
+                }
+            }
+            println!();
+        }
+        println!();
+    }
+
+    let mut selec_ship = 0;
+    loop {
+        match input_move() {
+            Move::Up => {
+                if ships[selec_ship].pos.y > 0 {
+                    ships[selec_ship].pos.y -= 1;
+                }
+            },
+            Move::Down => {
+                if ships[selec_ship].pos.y < HEIGHT-1 {
+                    ships[selec_ship].pos.y += 1;
+                }
+            },
+            Move::Left => {
+                if ships[selec_ship].pos.x > 0 {
+                    ships[selec_ship].pos.x -= 1;
+                }
+            },
+            Move::Right => {
+                if ships[selec_ship].pos.x < WIDTH-1 {
+                    ships[selec_ship].pos.x += 1;
+                }
+            },
+            Move::Rotate => {
+                ships[selec_ship].rotate();
+            },
+            Move::Switch => {
+                selec_ship = (selec_ship + 1) % ships.len();
+            },
+            Move::Done => {
+                break;
+            },
+        }
+        for y in 0..HEIGHT {
+            print!("{} │ ", number_to_letter(y));
+            for x in 0..WIDTH {
+                let mut i = 0;
+                let mut ship = false;
+                for s in &ships {
+                    if s.shape.iter().any(|p| p.x == x-s.pos.x && p.y == y-s.pos.y) {
+                        ship = true;
+                        break;
+                    }
+                    i += 1;
+                }
+                if ship {
+                    print!("{}■ {_RESET}", if i == selec_ship { _CYAN } else { _RESET });
+                } else {
+                    print!("  ");
+                }
+            }
+            println!();
+        }
+    }
 
     println!();
 
@@ -131,14 +240,17 @@ fn main() {
                 for ship in &downed_ships {
                     if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
                         print!("{_GRAY}■{_RESET} ");
+                        break;
                     }
                 }
                 if shots.iter().any(|p| p.x == x && p.y == y) {
                     for ship in &ships {
                         if ship.shape.iter().any(|p| p.x == x-ship.pos.x && p.y == y-ship.pos.y) {
                             print!("{_RED}■{_RESET} ");
+                            break;
                         } else {
                             print!("{_RESET}■{_RESET} ");
+                            break;
                         }
                     }
                 } else if letter_to_number(iy) == y && ix == x {
@@ -175,15 +287,6 @@ fn input() -> String {
     return line;
 }
 
-fn input_number() -> i8 {
-    
-    return input().trim().parse().unwrap();
-}
-
-fn input_letter() -> char {
-    return input().trim().chars().next().unwrap();
-}
-
 fn letter_to_number(letter: char) -> i8 {
     return letter as i8 - 'A' as i8;
 }
@@ -203,5 +306,20 @@ fn input_any() -> Position {
         Position::Letter(letter)
     } else {
         panic!("Invalid input");
+    }
+}
+
+fn input_move() -> Move {
+    let binding = input();
+    let input: &str = binding.trim();
+    match input {
+        "w" => Move::Up,
+        "s" => Move::Down,
+        "a" => Move::Left,
+        "d" => Move::Right,
+        "r" => Move::Rotate,
+        "q" => Move::Switch,
+        "e" => Move::Done,
+        _ => panic!("Invalid input"),
     }
 }
