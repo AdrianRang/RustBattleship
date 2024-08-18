@@ -207,7 +207,7 @@ fn main() {
 
     let mut selec_ship = 0;
     loop {
-        // let _ = clearscreen::clear();
+        clearscreen::clear().unwrap();
 
         print!("{_RED}{_BOLD}P1{_RESET}│ ");
         for i in 1..WIDTH + 1 {
