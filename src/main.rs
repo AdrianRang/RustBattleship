@@ -1,6 +1,6 @@
 use core::str;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Point {
     x: i8,
     y: i8,
@@ -18,6 +18,66 @@ impl Ship {
             let x = p.x;
             p.x = -p.y;
             p.y = x;
+        }
+    }
+    
+    fn get_rotated(&self) -> Ship {
+        let mut new_shape = Vec::new();
+        for p in &self.shape {
+            new_shape.push(Point { x: -p.y, y: p.x });
+        }
+        Ship {
+            pos: Point { x: self.pos.x, y: self.pos.y },
+            shape: new_shape,
+        }
+    }
+
+    fn bounds(&self) -> (i8, i8, i8, i8) {
+        let mut minx = 127;
+        let mut miny = 127;
+        let mut maxx = -127;
+        let mut maxy = -127;
+        for p in &self.shape {
+            if p.x < minx {
+                minx = p.x;
+            }
+            if p.y < miny {
+                miny = p.y;
+            }
+            if p.x > maxx {
+                maxx = p.x;
+            }
+            if p.y > maxy {
+                maxy = p.y;
+            }
+        }
+        return (minx, miny, maxx, maxy);
+    }
+
+    fn intersects(&self, other: &Ship) -> bool {
+        for p in &self.shape {
+            for p2 in &other.shape {
+                if p.x + self.pos.x == p2.x + other.pos.x && p.y + self.pos.y == p2.y + other.pos.y {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    fn intersects_any(&self, others: &Vec<Ship>) -> bool {
+        for other in others {
+            if self.intersects(other) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn get_moved(&self, x: i8, y: i8) -> Ship {
+        Ship {
+            pos: Point { x: self.pos.x + x, y: self.pos.y + y },
+            shape: self.shape.clone(),
         }
     }
 
@@ -147,7 +207,7 @@ fn main() {
 
     let mut selec_ship = 0;
     loop {
-        let _ = clearscreen::clear();
+        // let _ = clearscreen::clear();
 
         print!("{_RED}{_BOLD}P1{_RESET}│ ");
         for i in 1..WIDTH + 1 {
@@ -193,27 +253,36 @@ fn main() {
         println!("\n{_CYAN}{_BOLD}W{_RESET} Up      {_CYAN}{_BOLD}S{_RESET} Down\n{_CYAN}{_BOLD}A{_RESET} Left    {_CYAN}{_BOLD}D{_RESET} Right\n{_CYAN}{_BOLD}R{_RESET} Rotate  {_CYAN}{_BOLD}Q{_RESET} Switch ship\n       {_CYAN}{_BOLD}E{_RESET} Done\n", );
         match input_move() {
             Move::Up => {
-                if ships[selec_ship].0.pos.y > 0 {
+                if ships[selec_ship].0.bounds().1 + ships[selec_ship].0.pos.y > 0 /* && ships[selec_ship].0.get_moved(0, -1).intersects_any() == false */ {
                     ships[selec_ship].0.pos.y -= 1;
                 }
             }
             Move::Down => {
-                if ships[selec_ship].0.pos.y < HEIGHT - 1 {
+                if ships[selec_ship].0.bounds().3 + ships[selec_ship].0.pos.y < HEIGHT - 1 {
                     ships[selec_ship].0.pos.y += 1;
                 }
             }
             Move::Left => {
-                if ships[selec_ship].0.pos.x > 0 {
+                println!("{:?}", ships[selec_ship].0.bounds());
+                if ships[selec_ship].0.bounds().0 + ships[selec_ship].0.pos.x > 0 {
                     ships[selec_ship].0.pos.x -= 1;
                 }
             }
             Move::Right => {
-                if ships[selec_ship].0.pos.x < WIDTH - 1 {
+                println!("{:?}", ships[selec_ship].0.bounds());
+                if ships[selec_ship].0.bounds().2 + ships[selec_ship].0.pos.x < WIDTH - 1 {
                     ships[selec_ship].0.pos.x += 1;
                 }
             }
             Move::Rotate => {
-                ships[selec_ship].0.rotate();
+                let rotaded: Ship = ships[selec_ship].0.clone().get_rotated();
+                if rotaded.bounds().0 + rotaded.pos.x >= 0
+                    && rotaded.bounds().2 + rotaded.pos.x < WIDTH
+                    && rotaded.bounds().1 + rotaded.pos.y >= 0
+                    && rotaded.bounds().3 + rotaded.pos.y < HEIGHT
+                {
+                    ships[selec_ship].0.rotate();
+                }
             }
             Move::Switch => {
                 selec_ship = (selec_ship + 1) % ships.len();
@@ -278,27 +347,34 @@ fn main() {
         println!("\n{_CYAN}{_BOLD}W{_RESET} Up      {_CYAN}{_BOLD}S{_RESET} Down\n{_CYAN}{_BOLD}A{_RESET} Left    {_CYAN}{_BOLD}D{_RESET} Right\n{_CYAN}{_BOLD}R{_RESET} Rotate  {_CYAN}{_BOLD}Q{_RESET} Switch ship\n       {_CYAN}{_BOLD}E{_RESET} Done\n", );
         match input_move() {
             Move::Up => {
-                if ships_p2[selec_ship].0.pos.y > 0 {
+                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().1 > 0 {
                     ships_p2[selec_ship].0.pos.y -= 1;
                 }
             }
             Move::Down => {
-                if ships_p2[selec_ship].0.pos.y < HEIGHT - 1 {
+                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().3 < HEIGHT - 1 {
                     ships_p2[selec_ship].0.pos.y += 1;
                 }
             }
             Move::Left => {
-                if ships_p2[selec_ship].0.pos.x > 0 {
+                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().0 > 0 {
                     ships_p2[selec_ship].0.pos.x -= 1;
                 }
             }
             Move::Right => {
-                if ships_p2[selec_ship].0.pos.x < WIDTH - 1 {
+                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().2 < WIDTH - 1 {
                     ships_p2[selec_ship].0.pos.x += 1;
                 }
             }
             Move::Rotate => {
-                ships_p2[selec_ship].0.rotate();
+                let rotaded: Ship = ships_p2[selec_ship].0.clone().get_rotated();
+                if rotaded.bounds().0 + rotaded.pos.x >= 0
+                    && rotaded.bounds().2 + rotaded.pos.x < WIDTH
+                    && rotaded.bounds().1 + rotaded.pos.y >= 0
+                    && rotaded.bounds().3 + rotaded.pos.y < HEIGHT
+                {
+                    ships_p2[selec_ship].0.rotate();
+                }
             }
             Move::Switch => {
                 selec_ship = (selec_ship + 1) % ships_p2.len();
@@ -556,7 +632,7 @@ fn main() {
                 ships.remove(*i);
             }
 
-            
+
             currship = 0;
             currship2 = 2;
             yoffset = 0;
