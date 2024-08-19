@@ -6,10 +6,30 @@ struct Point {
     y: i8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Ship {
     pos: Point,
     shape: Vec<Point>,
+}
+
+
+enum Position {
+    Letter(char),
+    Number(i8),
+    FullPos(char, i8),
+    Shoot(bool),
+    Invalid,
+}
+
+enum Move {
+    Up,
+    Down,
+    Left,
+    Right,
+    Rotate,
+    Switch,
+    Done,
+    Invalid,
 }
 
 impl Ship {
@@ -65,10 +85,10 @@ impl Ship {
         return false;
     }
 
-    fn intersects_any(&self, others: &Vec<Ship>) -> bool {
+    fn intersects_any(&self, others: &Vec<(Ship, Vec<String>)>) -> bool {
         for other in others {
-            if self.intersects(other) {
-                return true;
+            if self.intersects(&other.0) {
+            return true;
             }
         }
         return false;
@@ -97,21 +117,6 @@ impl Ship {
     }
 }
 
-enum Position {
-    Letter(char),
-    Number(i8),
-    Shoot(bool),
-}
-
-enum Move {
-    Up,
-    Down,
-    Left,
-    Right,
-    Rotate,
-    Switch,
-    Done,
-}
 
 const _BOLD: &str = "\u{001B}[1m";
 const _BLACK: &str = "\u{001B}[30m";
@@ -130,6 +135,13 @@ const CROSSHAIRCOL: &str = _GREEN;
 fn main() {
     const WIDTH: i8 = 8;
     const HEIGHT: i8 = 8;
+
+    clearscreen::clear().unwrap();
+    println!("                                  {_RED}╔════════════════════════╗");
+    println!("                                  {_RED}║{_RESET} Welcome to {_BOLD}{_BLUE}Battleship{_RESET}! {_RED}║");
+    println!("                                  {_RED}║{_RESET}  Press enter to start  {_RED}║");
+    println!("                                  {_RED}╚════════════════════════╝{_RESET}");
+    input();
 
     let squigly = Ship {
         pos: Point { x: 2, y: 0 },
@@ -173,6 +185,11 @@ fn main() {
     let mut downed_ships_p2: Vec<Ship> = Vec::new();
 
     let mut renderships: Vec<Vec<String>> = Vec::new();
+
+    clearscreen::clear().unwrap();
+    println!("Place your ships, {_RED}{_BOLD}P1{_RESET}!");
+    input();
+    clearscreen::clear().unwrap();
 
     for ship in &sss {
         let mut rship: Vec<String> = Vec::new();
@@ -251,26 +268,28 @@ fn main() {
 
         //* Get user input
         println!("\n{_CYAN}{_BOLD}W{_RESET} Up      {_CYAN}{_BOLD}S{_RESET} Down\n{_CYAN}{_BOLD}A{_RESET} Left    {_CYAN}{_BOLD}D{_RESET} Right\n{_CYAN}{_BOLD}R{_RESET} Rotate  {_CYAN}{_BOLD}Q{_RESET} Switch ship\n       {_CYAN}{_BOLD}E{_RESET} Done\n", );
+        let mut n = ships.clone();
+        n.remove(selec_ship);
         match input_move() {
             Move::Up => {
-                if ships[selec_ship].0.bounds().1 + ships[selec_ship].0.pos.y > 0 /* && ships[selec_ship].0.get_moved(0, -1).intersects_any() == false */ {
+                if ships[selec_ship].0.bounds().1 + ships[selec_ship].0.pos.y > 0  && !ships[selec_ship].0.get_moved(0, -1).intersects_any(&n) {
                     ships[selec_ship].0.pos.y -= 1;
                 }
             }
             Move::Down => {
-                if ships[selec_ship].0.bounds().3 + ships[selec_ship].0.pos.y < HEIGHT - 1 {
+                if ships[selec_ship].0.bounds().3 + ships[selec_ship].0.pos.y < HEIGHT - 1 && !ships[selec_ship].0.get_moved(0, 1).intersects_any(&n) {
                     ships[selec_ship].0.pos.y += 1;
                 }
             }
             Move::Left => {
                 println!("{:?}", ships[selec_ship].0.bounds());
-                if ships[selec_ship].0.bounds().0 + ships[selec_ship].0.pos.x > 0 {
+                if ships[selec_ship].0.bounds().0 + ships[selec_ship].0.pos.x > 0 && !ships[selec_ship].0.get_moved(-1, 0).intersects_any(&n) {
                     ships[selec_ship].0.pos.x -= 1;
                 }
             }
             Move::Right => {
                 println!("{:?}", ships[selec_ship].0.bounds());
-                if ships[selec_ship].0.bounds().2 + ships[selec_ship].0.pos.x < WIDTH - 1 {
+                if ships[selec_ship].0.bounds().2 + ships[selec_ship].0.pos.x < WIDTH - 1 && !ships[selec_ship].0.get_moved(1, 0).intersects_any(&n) {
                     ships[selec_ship].0.pos.x += 1;
                 }
             }
@@ -280,6 +299,7 @@ fn main() {
                     && rotaded.bounds().2 + rotaded.pos.x < WIDTH
                     && rotaded.bounds().1 + rotaded.pos.y >= 0
                     && rotaded.bounds().3 + rotaded.pos.y < HEIGHT
+                    && !rotaded.intersects_any(&n)
                 {
                     ships[selec_ship].0.rotate();
                 }
@@ -290,14 +310,15 @@ fn main() {
             Move::Done => {
                 break;
             }
+            Move::Invalid => {println!("Invalid input");    }
         }
     }
 
     clearscreen::clear().unwrap();
 
-    println!("Player 2's turn to place ships");
-
+    println!("Place your ships, {_BLUE}{_BOLD}P2{_RESET}!");
     input();
+    clearscreen::clear().unwrap();
 
     let mut selec_ship = 0;
     loop {
@@ -345,24 +366,26 @@ fn main() {
 
         //* Get user input
         println!("\n{_CYAN}{_BOLD}W{_RESET} Up      {_CYAN}{_BOLD}S{_RESET} Down\n{_CYAN}{_BOLD}A{_RESET} Left    {_CYAN}{_BOLD}D{_RESET} Right\n{_CYAN}{_BOLD}R{_RESET} Rotate  {_CYAN}{_BOLD}Q{_RESET} Switch ship\n       {_CYAN}{_BOLD}E{_RESET} Done\n", );
+        let mut n = ships_p2.clone();
+        n.remove(selec_ship);
         match input_move() {
             Move::Up => {
-                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().1 > 0 {
+                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().1 > 0 && !ships_p2[selec_ship].0.get_moved(0, -1).intersects_any(&n) {
                     ships_p2[selec_ship].0.pos.y -= 1;
                 }
             }
             Move::Down => {
-                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().3 < HEIGHT - 1 {
+                if ships_p2[selec_ship].0.pos.y + ships_p2[selec_ship].0.bounds().3 < HEIGHT - 1 && !ships_p2[selec_ship].0.get_moved(0, 1).intersects_any(&n) {
                     ships_p2[selec_ship].0.pos.y += 1;
                 }
             }
             Move::Left => {
-                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().0 > 0 {
+                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().0 > 0 && !ships_p2[selec_ship].0.get_moved(-1, 0).intersects_any(&n) {
                     ships_p2[selec_ship].0.pos.x -= 1;
                 }
             }
             Move::Right => {
-                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().2 < WIDTH - 1 {
+                if ships_p2[selec_ship].0.pos.x + ships_p2[selec_ship].0.bounds().2 < WIDTH - 1 && !ships_p2[selec_ship].0.get_moved(1, 0).intersects_any(&n) {
                     ships_p2[selec_ship].0.pos.x += 1;
                 }
             }
@@ -372,6 +395,7 @@ fn main() {
                     && rotaded.bounds().2 + rotaded.pos.x < WIDTH
                     && rotaded.bounds().1 + rotaded.pos.y >= 0
                     && rotaded.bounds().3 + rotaded.pos.y < HEIGHT
+                    && !rotaded.intersects_any(&n)
                 {
                     ships_p2[selec_ship].0.rotate();
                 }
@@ -382,6 +406,7 @@ fn main() {
             Move::Done => {
                 break;
             }
+            Move::Invalid => {continue;}
         }
     }
 
@@ -390,14 +415,7 @@ fn main() {
     let mut iy: char = 'Ñ';
     let mut ix: i8 = 127;
 
-    'game_loop: loop {
-        let mut currship = 0;
-        let mut currship2 = 2;
-        let mut yoffset = 0;
-        let mut yoffset2 = 0;
-        let mut tempy = 0;
-        let mut tempy2 = 0;
-
+    '_game_loop: loop {
         if ships.len() == 0 {
             println!("All ships downed!, {_RED}{_BOLD}P2{_RESET} wins!");
             break;
@@ -441,12 +459,12 @@ fn main() {
                 ships_p2.remove(*i);
             }
 
-            currship = 0;
-            currship2 = 2;
-            yoffset = 0;
-            yoffset2 = 0;
-            tempy = 0;
-            tempy2 = 0;
+            let mut currship = 0;
+            let mut currship2 = 2;
+            let mut yoffset = 0;
+            let mut yoffset2 = 0;
+            let mut tempy = 0;
+            let mut tempy2 = 0;
 
             clearscreen::clear().unwrap();
 
@@ -564,6 +582,10 @@ fn main() {
                 Position::Number(number) => {
                     ix = number - 1;
                 }
+                Position::FullPos(letter, number) => {
+                    iy = letter;
+                    ix = number - 1;
+                }
                 Position::Shoot(shoot) => {
                     if shoot {
                         shots.push(Point {
@@ -571,7 +593,7 @@ fn main() {
                             y: letter_to_number(iy),
                         });
                         // check if hit
-                        let mut hit = Point {
+                        let hit = Point {
                             x: ix,
                             y: letter_to_number(iy),
                         };
@@ -593,6 +615,9 @@ fn main() {
                             break 'p1;
                         }
                     }
+                }
+                Position::Invalid => {
+                    println!("Invalid input");
                 }
             }
         }
@@ -633,12 +658,12 @@ fn main() {
             }
 
 
-            currship = 0;
-            currship2 = 2;
-            yoffset = 0;
-            yoffset2 = 0;
-            tempy = 0;
-            tempy2 = 0;
+            let mut currship = 0;
+            let mut currship2 = 2;
+            let mut yoffset = 0;
+            let mut yoffset2 = 0;
+            let mut tempy = 0;
+            let mut tempy2 = 0;
 
             clearscreen::clear().unwrap();
 
@@ -756,6 +781,10 @@ fn main() {
                 Position::Number(number) => {
                     ix = number - 1;
                 }
+                Position::FullPos(letter, number) => {
+                    iy = letter;
+                    ix = number - 1;
+                }
                 Position::Shoot(shoot) => {
                     if shoot {
                         shots_p2.push(Point {
@@ -763,7 +792,7 @@ fn main() {
                             y: letter_to_number(iy),
                         });
                         // check if hit
-                        let mut hit = Point {
+                        let hit = Point {
                             x: ix,
                             y: letter_to_number(iy),
                         };
@@ -785,6 +814,9 @@ fn main() {
                             break 'p2;
                         }
                     }
+                }
+                Position::Invalid => {
+                    println!("Invalid input");
                 }
             }
         }
@@ -818,17 +850,22 @@ fn input_any() -> Position {
     let input: &str = binding.trim();
     if input == "!" {
         Position::Shoot(true)
+    } else if input.len() == 2 {
+        let letter = input.chars().next().unwrap();
+        let number = input.chars().nth(1).unwrap().to_digit(10).unwrap() as i8;
+
+        Position::FullPos(letter, number)
     } else if let Ok(number) = input.parse::<i8>() {
         Position::Number(number)
     } else if let Some(letter) = input.chars().next() {
         Position::Letter(letter)
     } else {
-        panic!("Invalid input");
+        Position::Invalid
     }
 }
 
 fn input_move() -> Move {
-    let binding = input();
+    let binding = input().to_ascii_lowercase();
     let input: &str = binding.trim();
     match input {
         "w" => Move::Up,
@@ -838,6 +875,6 @@ fn input_move() -> Move {
         "r" => Move::Rotate,
         "q" => Move::Switch,
         "e" => Move::Done,
-        _ => panic!("Invalid input"),
+        _ => Move::Invalid,
     }
 }
